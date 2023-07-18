@@ -101,7 +101,7 @@ def scrape_main_pages(page_url):
     Scrape the main pages with specific tag eg. Biznes for links to news articles.
 
     Parameters:
-        page_url (str): The URL of the news article page to scrape.
+        page_url: The URL of the news article page to scrape.
 
     Returns:
         list: A list of URLs of news articles found on the page.
@@ -134,18 +134,19 @@ def scrape_main_pages(page_url):
     return output_list
 
 
-def compare_lists(output_list):
+def compare_lists(conn, output_list):
     """
     Compare the output list with the database and redirected lists.
 
     Parameters:
-        output_list (list): The list of URLs of news articles to compare.
+        conn: The connection object to database.
+        output_list: The list of URLs of news articles to compare.
 
     Returns:
         tuple: A tuple containing a new output list with unique URLs and the number of duplicates.
     """
-    database_output = dbh.fetch_links("news_table")
-    redirected_output = dbh.fetch_links("redirected_table")
+    database_output = dbh.fetch_links(conn, "news_table")
+    redirected_output = dbh.fetch_links(conn, "redirected_table")
 
     new_output_list = [item for item in output_list if item not in database_output]
 
@@ -162,8 +163,9 @@ def download_image(photo_url, photo):
     Download an image from the given URL.
 
     Parameters:
-        photo_url (str): The URL of the image to download.
-        photo (str): The filename to save the downloaded image as.
+        conn: The connection object to database.
+        photo_url: The URL of the image to download.
+        photo: The filename to save the downloaded image as.
     """
     try:
         with requests.get(photo_url, timeout=300) as response:
@@ -183,15 +185,16 @@ def download_image(photo_url, photo):
         print("Failed to download image:", str(exception))
 
 
-def scrape_specific_pages(new_output_list, tag):
+def scrape_specific_pages(conn, new_output_list, tag):
     """
     Scrape specific pages for data and insert into the database.
 
     Parameters:
-        new_output_list (list): The list of URLs of news articles to scrape.
-        tag (str): The tag representing the topic of the news articles.
+        conn: The connection object to database.
+        new_output_list: The list of URLs of news articles to scrape.
+        tag: The tag representing the topic of the news articles.
     """
-    new_output_list, duplicates = compare_lists(new_output_list)
+    new_output_list, duplicates = compare_lists(conn, new_output_list)
     print("Total Duplicates found:", duplicates)
 
     for counter, link in enumerate(new_output_list, start=1):
@@ -251,6 +254,7 @@ def scrape_specific_pages(new_output_list, tag):
                 print("author:", author)
 
                 dbh.insert_data(
+                    conn,
                     "news_table",
                     link,
                     tag,
@@ -272,7 +276,7 @@ def scrape_specific_pages(new_output_list, tag):
             print("Page was redirected.")
             print("redirected to:", current_link)
             print("desired page:", link)
-            dbh.insert_data("redirected_table", link)
+            dbh.insert_data(conn, "redirected_table", link)
             print()
 
     if not new_output_list:
@@ -280,23 +284,28 @@ def scrape_specific_pages(new_output_list, tag):
         print()
 
 
-def startup():
+def startup(conn):
     """
     Check if the folder containing the 'geckodriver.exe' file exists and the file is present.
+
+    Parameters:
+        conn: The connection object to database.
 
     Returns:
         bool: True if the folders and files exist, False otherwise.
     """
-    tables_exist = dbh.tables_exist()
     print("Checking tables.")
+    tables_exist = dbh.tables_exist(conn)
     geckodriver_path = os.path.join(os.getcwd(), "geckodriver", "geckodriver.exe")
 
     if not tables_exist:
-        dbh.create_tables()
+        dbh.create_tables(conn)
 
     if os.path.exists(geckodriver_path):
         print("Geckodriver is present.")
+        print()
         return True
+
 
     print(
         "The folder containing 'geckodriver.exe' does not exist or the file is missing."
@@ -310,18 +319,22 @@ def main():
     Main function to control the scraping process.
     """
     start = time.time()
-    if startup():
-        browser.get(MAIN_PAGE_URL)
-        remove_popups()
+    print("Script start.")
+    conn = dbh.create_connection()
+    if conn is not None:
+        if startup(conn):
+            browser.get(MAIN_PAGE_URL)
+            remove_popups()
 
-        for url, tag in page_urls:
-            output_list = scrape_main_pages(url)
-            scrape_specific_pages(output_list, tag)
+            for url, tag in page_urls:
+                output_list = scrape_main_pages(url)
+                scrape_specific_pages(conn, output_list, tag)
 
-        browser.quit()
+            browser.quit()
+            dbh.close_connection(conn)
     end = time.time()
     difference = round(end - start, 2)
-    print("Program was running for:", difference, "seconds.")
+    print("Script was running for:", difference, "seconds.")
 
 
 if __name__ == "__main__":

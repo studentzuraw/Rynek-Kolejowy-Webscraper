@@ -41,16 +41,17 @@ def create_connection():
         return None
 
 
-def insert_data(table, *args):
+def insert_data(conn, table, *args):
     """
     Insert data into the specified table.
 
-    Args:
+    Parameters:
+        conn: The connection object.
         table (str): The name of the table to insert data into
         ("news_table" or "redirected_table").
         *args (tuple): The data to be inserted into the table.
     """
-    conn = create_connection()
+    check_connection(conn)
     try:
         cursor = conn.cursor()
 
@@ -75,36 +76,37 @@ def insert_data(table, *args):
         print("Data inserted successfully")
     except Error as exception:
         print(f"Error inserting data: {exception}")
-    finally:
-        close_connection(conn)
 
 
-def fetch_links(table):
+def fetch_links(conn, table):
     """
     Fetch links from the specified table.
 
-    Args:
+    Parameters:
+        conn: The connection object.
         table (str): The name of the table to fetch links from ("news_table" or "redirected_table").
 
     Returns:
         list: A list of link strings from the specified table.
     """
-    conn = create_connection()
+    check_connection(conn)
     cursor = conn.cursor()
     cursor.execute(f"SELECT link FROM {table}")
     database_list = []
     for row in cursor.fetchall():
         database_list.append(row[0])
-    close_connection(conn)
     print(f"Fetching links from {table}")
     return database_list
 
 
-def create_tables():
+def create_tables(conn):
     """
     Create the necessary tables if they don't already exist.
+
+    Args:
+        conn: The connection object.
     """
-    conn = create_connection()
+    check_connection(conn)
     try:
         cursor = conn.cursor()
         cursor.execute(
@@ -134,18 +136,19 @@ def create_tables():
         print("Tables created succesfully")
     except Error as exception:
         print(f"Error creating tables: {exception}")
-    finally:
-        close_connection(conn)
 
 
-def tables_exist():
+def tables_exist(conn):
     """
     Check if 'news_table' and 'redirected_table' exist in the database.
+
+    Parameters:
+        conn: The connection object.
 
     Returns:
         bool: True if both tables exist, False otherwise.
     """
-    conn = create_connection()
+    check_connection(conn)
     try:
         cursor = conn.cursor()
 
@@ -167,15 +170,27 @@ def tables_exist():
         print(f"Error checking table existence: {exception}")
         return False
 
-    finally:
-        close_connection(conn)
+
+def check_connection(conn):
+    """
+    check whether the connection with database is maintained.
+
+    Parameters:
+        conn: The connection object.
+    """
+    print("Checking connection...")
+    if conn is None:
+        conn = create_connection()
+        print("Connection was not present.")
+        print("Connection renewed.")
+    print("Connection is present.")
 
 
 def close_connection(conn):
     """
     Close the connection to the database.
 
-    Args:
+    Parameters:
         conn: The connection object to be closed.
     """
     if conn is not None:
