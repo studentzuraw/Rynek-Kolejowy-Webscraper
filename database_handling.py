@@ -138,6 +138,39 @@ def create_tables():
         close_connection(conn)
 
 
+def tables_exist():
+    """
+    Check if 'news_table' and 'redirected_table' exist in the database.
+
+    Returns:
+        bool: True if both tables exist, False otherwise.
+    """
+    conn = create_connection()
+    try:
+        cursor = conn.cursor()
+
+        # Check if the 'news_table' exists
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='news_table'"
+        )
+        news_table_exists = cursor.fetchone() is not None
+
+        # Check if the 'redirected_table' exists
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='redirected_table'"
+        )
+        redirected_table_exists = cursor.fetchone() is not None
+        print("Tables already exist.")
+        return news_table_exists and redirected_table_exists
+
+    except Error as exception:
+        print(f"Error checking table existence: {exception}")
+        return False
+
+    finally:
+        close_connection(conn)
+
+
 def close_connection(conn):
     """
     Close the connection to the database.

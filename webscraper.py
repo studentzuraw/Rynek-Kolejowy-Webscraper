@@ -276,21 +276,48 @@ def scrape_specific_pages(new_output_list, tag):
         print()
 
 
+def startup():
+    """
+    Check if the folder containing the 'geckodriver.exe' file exists and the file is present.
+
+    Returns:
+        bool: True if the folders and files exist, False otherwise.
+    """
+    tables_exist = dbh.tables_exist()
+    print("Checking tables.")
+    geckodriver_path = os.path.join(os.getcwd(), "geckodriver", "geckodriver.exe")
+
+    if not tables_exist:
+        dbh.create_tables()
+
+    if os.path.exists(geckodriver_path):
+        print("Geckodriver is present.")
+        return True
+
+    print(
+        "The folder containing 'geckodriver.exe' does not exist or the file is missing."
+    )
+    print("Please download geckodriver.exe and put that in geckodriver folder.")
+    return False
+
+
 def main():
     """
     Main function to control the scraping process.
     """
     start = time.time()
-    browser.get(MAIN_PAGE_URL)
-    remove_popups()
+    if startup():
+        browser.get(MAIN_PAGE_URL)
+        remove_popups()
 
-    for url, tag in page_urls:
-        output_list = scrape_main_pages(url)
-        scrape_specific_pages(output_list, tag)
+        for url, tag in page_urls:
+            output_list = scrape_main_pages(url)
+            scrape_specific_pages(output_list, tag)
 
-    browser.quit()
+        browser.quit()
     end = time.time()
-    print("Program was running for %.2f seconds:" % (end - start))
+    difference = round(end - start, 2)
+    print("Program was running for:", difference, "seconds.")
 
 
 if __name__ == "__main__":
