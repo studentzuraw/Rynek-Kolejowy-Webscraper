@@ -1,0 +1,14 @@
+__pycache__/
+
+# geckodriver
+geckodriver/
+*.log
+
+# notes
+*.txt
+
+messages.db
+
+images/
+
+work.py
