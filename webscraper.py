@@ -169,6 +169,10 @@ def download_image(photo_url, photo):
         with requests.get(photo_url, timeout=300) as response:
             response.raise_for_status()
 
+            # Create the 'images' folder if it doesn't exist
+            if not os.path.exists("images"):
+                os.makedirs("images")
+
             # Save the image to the 'images' folder
             photo_path = os.path.join("images", photo)
             with open(photo_path, "wb") as file:
